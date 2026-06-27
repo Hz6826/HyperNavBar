@@ -92,6 +92,8 @@ class MainActivity : ComponentActivity() {
             }
             var isFloatingNavbar by remember { mutableStateOf(savedSettings.isFloatingNavbar) }
             var isLiquidGlass by remember { mutableStateOf(savedSettings.isLiquidGlass) }
+            var autoApplyOnBoot by remember { mutableStateOf(savedSettings.autoApplyOnBoot) }
+            var applyIntervalMinutes by remember { mutableIntStateOf(savedSettings.applyIntervalMinutes) }
 
             var hasRoot by remember { mutableStateOf(false) }
             var rootChecked by remember { mutableStateOf(false) }
@@ -111,6 +113,8 @@ class MainActivity : ComponentActivity() {
                         themeMode = themeMode.name,
                         isFloatingNavbar = isFloatingNavbar,
                         isLiquidGlass = isLiquidGlass,
+                        autoApplyOnBoot = autoApplyOnBoot,
+                        applyIntervalMinutes = applyIntervalMinutes,
                     )
                 )
             }
@@ -122,6 +126,8 @@ class MainActivity : ComponentActivity() {
                     themeMode = themeMode,
                     isFloatingNavbar = isFloatingNavbar,
                     isLiquidGlass = isLiquidGlass,
+                    autoApplyOnBoot = autoApplyOnBoot,
+                    applyIntervalMinutes = applyIntervalMinutes,
                     onRetryRootCheck = {
                         scope.launch {
                             rootChecked = false
@@ -134,6 +140,8 @@ class MainActivity : ComponentActivity() {
                     onThemeModeChange = { themeMode = it; persistState() },
                     onFloatingNavbarChange = { isFloatingNavbar = it; persistState() },
                     onLiquidGlassChange = { isLiquidGlass = it; persistState() },
+                    onAutoApplyChange = { autoApplyOnBoot = it; persistState() },
+                    onApplyIntervalChange = { applyIntervalMinutes = it; persistState() },
                 )
             }
         }
@@ -147,16 +155,21 @@ private fun MainScreen(
     themeMode: ColorSchemeMode,
     isFloatingNavbar: Boolean,
     isLiquidGlass: Boolean,
+    autoApplyOnBoot: Boolean,
+    applyIntervalMinutes: Int,
     onRetryRootCheck: () -> Unit,
     onThemeModeChange: (ColorSchemeMode) -> Unit,
     onFloatingNavbarChange: (Boolean) -> Unit,
     onLiquidGlassChange: (Boolean) -> Unit,
+    onAutoApplyChange: (Boolean) -> Unit,
+    onApplyIntervalChange: (Int) -> Unit,
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val pagerState = rememberPagerState(pageCount = { 4 })
     var selectedIndex by remember { mutableIntStateOf(0) }
     var isNavigating by remember { mutableStateOf(false) }
     var navJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
+    var homeRefreshKey by remember { mutableIntStateOf(0) }
     val scope = rememberCoroutineScope()
     val items = listOf(
         stringResource(R.string.tab_home),
@@ -174,6 +187,7 @@ private fun MainScreen(
     LaunchedEffect(pagerState.currentPage) {
         if (!isNavigating && selectedIndex != pagerState.currentPage) {
             selectedIndex = pagerState.currentPage
+            homeRefreshKey++
         }
     }
 
@@ -194,11 +208,11 @@ private fun MainScreen(
                 items = items,
                 icons = icons,
                 selectedIndex = selectedIndex,
-                hasRoot = hasRoot,
                 backdrop = backdrop,
                 blurActive = blurActive,
                 onItemSelected = { index ->
                     if (index == selectedIndex) return@BottomNavigationBar
+                    homeRefreshKey++
                     navJob?.cancel()
                     selectedIndex = index
                     isNavigating = true
@@ -250,22 +264,28 @@ private fun MainScreen(
                 modifier = Modifier.fillMaxSize(),
             ) { page ->
                 when (page) {
-                    0 -> HomePageView(
+                     0 -> HomePageView(
                         hasRoot = hasRoot,
                         rootChecked = rootChecked,
                         onRetryRootCheck = onRetryRootCheck,
+                        refreshKey = homeRefreshKey,
                         extraBottomPadding = navBarHeight,
                     )
-                    1 -> RulesPageView(
+                     1 -> RulesPageView(
+                        applyIntervalMinutes = applyIntervalMinutes,
                         extraBottomPadding = navBarHeight,
                     )
-                    2 -> SettingsPageView(
+                     2 -> SettingsPageView(
                         currentMode = themeMode,
                         onModeChange = onThemeModeChange,
                         isFloatingNavbar = isFloatingNavbar,
                         onFloatingNavbarChange = onFloatingNavbarChange,
                         isLiquidGlass = isLiquidGlass,
                         onLiquidGlassChange = onLiquidGlassChange,
+                        autoApplyOnBoot = autoApplyOnBoot,
+                        onAutoApplyChange = onAutoApplyChange,
+                        applyIntervalMinutes = applyIntervalMinutes,
+                        onApplyIntervalChange = onApplyIntervalChange,
                         extraBottomPadding = navBarHeight,
                     )
                     3 -> AboutPageContent(
@@ -285,7 +305,6 @@ private fun BottomNavigationBar(
     items: List<String>,
     icons: List<androidx.compose.ui.graphics.vector.ImageVector>,
     selectedIndex: Int,
-    hasRoot: Boolean,
     backdrop: LayerBackdrop?,
     blurActive: Boolean,
     onItemSelected: (Int) -> Unit,
@@ -300,7 +319,7 @@ private fun BottomNavigationBar(
                 items = navigationItems,
                 selectedIndex = selectedIndex,
                 onItemClick = { index ->
-                    if (index != 1 || hasRoot) onItemSelected(index)
+                    onItemSelected(index)
                 },
                 backdrop = backdrop,
                 isBlurActive = blurActive,
@@ -337,7 +356,7 @@ private fun BottomNavigationBar(
                         onClick = { onItemSelected(index) },
                         icon = icons[index],
                         label = label,
-                        enabled = index != 1 || hasRoot
+                        enabled = true
                     )
                 }
             }
@@ -378,7 +397,7 @@ private fun BottomNavigationBar(
                             onClick = { onItemSelected(index) },
                             icon = icons[index],
                             label = label,
-                            enabled = index != 1 || hasRoot
+                            enabled = true
                         )
                     }
                 }

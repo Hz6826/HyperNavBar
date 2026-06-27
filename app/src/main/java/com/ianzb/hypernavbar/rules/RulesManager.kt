@@ -1,0 +1,143 @@
+package com.ianzb.hypernavbar.rules
+
+import android.content.Context
+import org.json.JSONArray
+import java.util.UUID
+
+object RulesManager {
+
+    private const val PREFS_NAME = "rules_configs"
+    private const val STATE_PREFS_NAME = "rules_state"
+    private const val KEY_CONFIGS = "rule_configs"
+    private const val KEY_LAST_APPLY = "last_apply_time"
+    private const val KEY_MERGED_COUNT = "applied_count"
+    private const val KEY_IS_CUSTOM = "is_custom_applied"
+
+    fun saveApplyState(context: Context, time: Long, count: Int, isCustom: Boolean) {
+        context.getSharedPreferences(STATE_PREFS_NAME, Context.MODE_PRIVATE)
+            .edit()
+            .putLong(KEY_LAST_APPLY, time)
+            .putInt(KEY_MERGED_COUNT, count)
+            .putBoolean(KEY_IS_CUSTOM, isCustom)
+            .commit()
+    }
+
+    fun loadLastApplyTime(context: Context): Long =
+        context.getSharedPreferences(STATE_PREFS_NAME, Context.MODE_PRIVATE)
+            .getLong(KEY_LAST_APPLY, 0L)
+
+    fun loadAppliedCount(context: Context): Int =
+        context.getSharedPreferences(STATE_PREFS_NAME, Context.MODE_PRIVATE)
+            .getInt(KEY_MERGED_COUNT, 0)
+
+    fun loadIsCustomApplied(context: Context): Boolean =
+        context.getSharedPreferences(STATE_PREFS_NAME, Context.MODE_PRIVATE)
+            .getBoolean(KEY_IS_CUSTOM, false)
+
+    fun loadAll(context: Context): List<RuleConfigSource> {
+        val json = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .getString(KEY_CONFIGS, null) ?: return emptyList()
+        return try {
+            val arr = JSONArray(json)
+            (0 until arr.length()).map { i -> RuleConfigSource.fromJson(arr.getJSONObject(i)) }
+        } catch (_: Exception) {
+            emptyList()
+        }
+    }
+
+    fun saveAll(context: Context, configs: List<RuleConfigSource>) {
+        val arr = JSONArray()
+        configs.forEach { arr.put(it.toJson()) }
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .edit().putString(KEY_CONFIGS, arr.toString()).commit()
+    }
+
+    fun add(context: Context, type: RuleType, url: String, jsonContent: String = "", name: String = "", appCount: Int = 0): RuleConfigSource {
+        val configs = loadAll(context).toMutableList()
+        val config = RuleConfigSource(
+            id = UUID.randomUUID().toString(),
+            type = type,
+            url = url,
+            jsonContent = jsonContent,
+            name = name.ifEmpty { url },
+            priority = (configs.maxOfOrNull { it.priority } ?: -1) + 1,
+            appCount = appCount,
+        )
+        configs.add(config)
+        saveAll(context, configs)
+        return config
+    }
+
+    fun update(context: Context, config: RuleConfigSource) {
+        val configs = loadAll(context).toMutableList()
+        val idx = configs.indexOfFirst { it.id == config.id }
+        if (idx >= 0) {
+            configs[idx] = config
+            saveAll(context, configs)
+        }
+    }
+
+    fun remove(context: Context, id: String) {
+        val configs = loadAll(context).toMutableList()
+        configs.removeAll { it.id == id }
+        saveAll(context, configs)
+    }
+
+    fun moveUp(context: Context, id: String) {
+        val configs = loadAll(context).toMutableList()
+        val idx = configs.indexOfFirst { it.id == id }
+        if (idx > 0) {
+            swapPriority(configs, idx, idx - 1)
+            saveAll(context, configs)
+        }
+    }
+
+    fun moveDown(context: Context, id: String) {
+        val configs = loadAll(context).toMutableList()
+        val idx = configs.indexOfFirst { it.id == id }
+        if (idx in 0 until configs.lastIndex) {
+            swapPriority(configs, idx, idx + 1)
+            saveAll(context, configs)
+        }
+    }
+
+    fun updateRefreshTime(context: Context, id: String, time: Long, appCount: Int = 0, name: String = "", cachedContent: String = "") {
+        val configs = loadAll(context).toMutableList()
+        val idx = configs.indexOfFirst { it.id == id }
+        if (idx >= 0) {
+            val old = configs[idx]
+            configs[idx] = old.copy(
+                lastRefreshTime = time,
+                appCount = if (appCount > 0) appCount else old.appCount,
+                name = name.ifEmpty { old.name },
+                cachedContent = cachedContent.ifEmpty { old.cachedContent },
+            )
+            saveAll(context, configs)
+        }
+    }
+
+    fun clearAll(context: Context) {
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .edit().remove(KEY_CONFIGS).apply()
+    }
+
+    fun exportJson(configs: List<RuleConfigSource>): JSONArray {
+        val arr = JSONArray()
+        configs.forEach { arr.put(it.toJson()) }
+        return arr
+    }
+
+    fun importFromJson(context: Context, arr: JSONArray) {
+        val configs = (0 until arr.length()).map { i ->
+            RuleConfigSource.fromJson(arr.getJSONObject(i))
+        }
+        saveAll(context, configs)
+    }
+
+    private fun swapPriority(configs: MutableList<RuleConfigSource>, i: Int, j: Int) {
+        val temp = configs[i]
+        configs[i] = configs[j]
+        configs[j] = temp
+        configs.forEachIndexed { idx, c -> configs[idx] = c.copy(priority = idx) }
+    }
+}

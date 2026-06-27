@@ -43,6 +43,7 @@ import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.SmallTitle
+import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.basic.TopAppBar
 import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.preference.ArrowPreference
@@ -62,6 +63,10 @@ fun SettingsPageView(
     onFloatingNavbarChange: (Boolean) -> Unit,
     isLiquidGlass: Boolean,
     onLiquidGlassChange: (Boolean) -> Unit,
+    autoApplyOnBoot: Boolean,
+    onAutoApplyChange: (Boolean) -> Unit,
+    applyIntervalMinutes: Int,
+    onApplyIntervalChange: (Int) -> Unit,
     extraBottomPadding: Dp = 0.dp,
 ) {
     val context = LocalContext.current
@@ -78,7 +83,10 @@ fun SettingsPageView(
     ) { uri: Uri? ->
         uri?.let {
             try {
-                val json = AppSettings.load(context).toJson()
+                val settings = AppSettings.load(context)
+                val rulesConfigs = com.ianzb.hypernavbar.rules.RulesManager.loadAll(context)
+                val configsArr = com.ianzb.hypernavbar.rules.RulesManager.exportJson(rulesConfigs)
+                val json = settings.copy(rulesConfigsJson = configsArr.toString()).toJson()
                 context.contentResolver.openOutputStream(it)?.use { output ->
                     output.write(json.toByteArray())
                 }
@@ -137,6 +145,27 @@ fun SettingsPageView(
             ) {
                 item {
                     Column {
+                        SmallTitle(text = stringResource(R.string.settings_features))
+                        Card(
+                            modifier = Modifier.padding(horizontal = 12.dp).padding(bottom = 12.dp)
+                        ) {
+                            Column {
+                                SwitchPreference(
+                                    title = stringResource(R.string.auto_apply_boot),
+                                    summary = stringResource(R.string.auto_apply_boot_summary),
+                                    checked = autoApplyOnBoot,
+                                    onCheckedChange = onAutoApplyChange
+                                )
+                                TextField(
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                                    value = applyIntervalMinutes.toString(),
+                                    onValueChange = { s -> onApplyIntervalChange(s.filter(Char::isDigit).toIntOrNull() ?: 0) },
+                                    label = stringResource(R.string.rules_apply_interval),
+                                    singleLine = true,
+                                )
+                            }
+                        }
+
                         SmallTitle(text = stringResource(R.string.settings_interface))
                         Card(
                             modifier = Modifier.padding(horizontal = 12.dp).padding(bottom = 12.dp)

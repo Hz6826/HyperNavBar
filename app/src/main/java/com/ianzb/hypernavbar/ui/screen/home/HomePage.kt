@@ -46,6 +46,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ianzb.hypernavbar.R
+import com.ianzb.hypernavbar.rules.RulesManager
 import com.ianzb.hypernavbar.ui.util.BlurredBar
 import com.ianzb.hypernavbar.ui.util.pageScrollModifiers
 import com.ianzb.hypernavbar.ui.util.rememberBlurBackdrop
@@ -67,6 +68,7 @@ fun HomePageView(
     hasRoot: Boolean,
     rootChecked: Boolean,
     onRetryRootCheck: () -> Unit,
+    refreshKey: Int = 0,
     extraBottomPadding: Dp = 0.dp,
 ) {
     val context = LocalContext.current
@@ -90,7 +92,22 @@ fun HomePageView(
             }
         }
     }
-    val moduleVersion = stringResource(R.string.home_module_version_placeholder)
+    val moduleVersion = try {
+        context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "1.0"
+    } catch (_: Exception) { "1.0" }
+    var subCount by remember { mutableStateOf(0) }
+    var mergedCount by remember { mutableStateOf(0) }
+    LaunchedEffect(rootChecked) {
+        if (rootChecked && !hasRoot) {
+            Toast.makeText(context, context.getString(R.string.home_status_no_root), Toast.LENGTH_SHORT).show()
+        }
+    }
+    LaunchedEffect(refreshKey, rootChecked) {
+        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            subCount = RulesManager.loadAll(context).size
+            mergedCount = RulesManager.loadAppliedCount(context)
+        }
+    }
 
     val backdrop = rememberBlurBackdrop()
     val blurActive = backdrop != null
@@ -173,12 +190,6 @@ fun HomePageView(
                             colors = CardDefaults.defaultColors(color = statusColor),
                             onClick = {
                                 if (!hasRoot) {
-                                    Toast.makeText(
-                                        context,
-                                        context.getString(R.string.home_status_no_root) +
-                                            "，${context.getString(R.string.home_status_click_to_retry)}",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
                                     onRetryRootCheck()
                                 } else {
                                     Toast.makeText(
@@ -255,7 +266,7 @@ fun HomePageView(
                                     )
                                     MiuixText(
                                         modifier = Modifier.fillMaxWidth(),
-                                        text = "0",
+                                        text = mergedCount.toString(),
                                         fontSize = 26.sp,
                                         fontWeight = FontWeight.SemiBold,
                                         color = MiuixTheme.colorScheme.onSurface
@@ -284,7 +295,7 @@ fun HomePageView(
                                     )
                                     MiuixText(
                                         modifier = Modifier.fillMaxWidth(),
-                                        text = "0",
+                                        text = subCount.toString(),
                                         fontSize = 26.sp,
                                         fontWeight = FontWeight.SemiBold,
                                         color = MiuixTheme.colorScheme.onSurface

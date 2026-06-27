@@ -34,6 +34,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -185,7 +186,10 @@ private fun AboutContent(
     val density = LocalDensity.current
     var logoHeightDp by remember { mutableStateOf(300.dp) }
     val appName = stringResource(R.string.app_name)
-    val versionName = stringResource(R.string.home_module_version_placeholder)
+    val ctx = LocalContext.current
+    val versionName = try {
+        ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionName ?: "1.0"
+    } catch (_: Exception) { "1.0" }
 
     BgEffectBackground(
         dynamicBackground = true,
