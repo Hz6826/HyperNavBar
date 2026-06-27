@@ -1,7 +1,6 @@
 package com.ianzb.hypernavbar.ui.screen.about
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -17,7 +16,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -36,7 +34,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -55,7 +52,6 @@ import com.ianzb.hypernavbar.ui.util.pageScrollModifiers
 import com.ianzb.hypernavbar.ui.util.rememberBlurBackdrop
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.CardDefaults
-import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.ScrollBehavior
@@ -66,16 +62,13 @@ import top.yukonga.miuix.kmp.blur.BlurDefaults
 import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.blur.textureBlur
 import top.yukonga.miuix.kmp.preference.ArrowPreference
-import top.yukonga.miuix.kmp.squircle.squircleBackground
 import top.yukonga.miuix.kmp.squircle.squircleClip
-import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme
 import top.yukonga.miuix.kmp.basic.Text as MiuixText
 import androidx.compose.ui.graphics.BlendMode as ComposeBlendMode
 
 @Composable
 fun AboutPageContent(
-    onBack: () -> Unit,
     openLicensePage: () -> Unit,
 ) {
     val topAppBarScrollBehavior = MiuixScrollBehavior()
@@ -340,12 +333,12 @@ private fun AboutContent(
                         ArrowPreference(
                             title = stringResource(R.string.about_source_code),
                             summary = stringResource(R.string.about_source_code_summary),
-                            onClick = { uriHandler.openUri("https://github.com/placeholder") },
+                            onClick = { uriHandler.openUri("https://github.com/Ianzb/HyperNavBar") },
                         )
                         ArrowPreference(
                             title = stringResource(R.string.about_telegram),
                             summary = stringResource(R.string.about_telegram_summary),
-                            onClick = { uriHandler.openUri("https://t.me/placeholder") },
+                            onClick = { uriHandler.openUri("https://t.me/HyperNavBar") },
                         )
                     }
                     Card(

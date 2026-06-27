@@ -269,7 +269,6 @@ private fun MainScreen(
                         extraBottomPadding = navBarHeight,
                     )
                     3 -> AboutPageContent(
-                        onBack = { },
                         openLicensePage = {
                             context.startActivity(Intent(context, LicenseActivity::class.java))
                         },

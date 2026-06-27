@@ -31,7 +31,6 @@ class AboutActivity : ComponentActivity() {
         setContent {
             AppTheme(themeMode = themeMode) {
                 AboutPageContent(
-                    onBack = { finish() },
                     openLicensePage = {
                         startActivity(Intent(this, LicenseActivity::class.java))
                     },
